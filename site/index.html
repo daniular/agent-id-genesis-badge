@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent ID Genesis Badge — Free claim for Agent ID holders</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; line-height: 1.5; color: #111; }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  .sub { color: #555; margin-top: 0; }
+  .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 16px 0; }
+  button { background: #f0b90b; color: #111; border: none; border-radius: 8px; padding: 10px 18px; font-size: 1rem; cursor: pointer; }
+  button:disabled { background: #ddd; color: #888; cursor: not-allowed; }
+  .ok { color: #0a7d2c; font-weight: 600; }
+  .no { color: #b00020; font-weight: 600; }
+  code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; word-break: break-all; }
+  .small { font-size: 0.85rem; color: #666; }
+  #log { white-space: pre-wrap; font-size: 0.85rem; background: #f7f7f7; border-radius: 8px; padding: 10px; min-height: 40px; }
+</style>
+</head>
+<body>
+<h1>🪪 Agent ID Genesis Badge</h1>
+<p class="sub">A free commemorative NFT for Binance Agent ID holders. One badge per
+Agent ID, gas only (no mint price). Built for the Binance Agent ID Hackathon.</p>
+
+<div class="card">
+  <button id="connectBtn">Connect wallet</button>
+  <p>Wallet: <code id="wallet">not connected</code></p>
+  <p>Agent ID: <span id="agentId">—</span></p>
+  <p>Badge claimed: <span id="claimed">—</span></p>
+  <p>Total badges claimed: <span id="total">—</span></p>
+</div>
+
+<div class="card">
+  <button id="claimBtn" disabled>Claim my free badge</button>
+  <p class="small">Claim costs gas only (value 0). Your wallet will ask you to
+  confirm the transaction — nothing is charged except network gas.</p>
+</div>
+
+<div class="card">
+  <div id="log">Ready.</div>
+</div>
+
+<p class="small">Badge contract: <code id="badgeAddr">—</code><br>
+Agent ID registry: <code>0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F</code> (BSC)<br>
+This site never asks for your seed phrase, private key, or pairing code.
+It only checks <b>your own</b> connected address.</p>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script>
+// ---------------------------------------------------------------------------
+// CONFIG — set BADGE_ADDRESS after the contract is deployed (phase 2).
+// Until then the Claim button stays disabled and the page is read-only.
+// ---------------------------------------------------------------------------
+const BADGE_ADDRESS = "0x0000000000000000000000000000000000000000"; // TODO: deployed Badge address
+const REGISTRY_ADDRESS = "0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F"; // SPACE ID Agent ID (BSC)
+const CHAIN_ID = 56; // BNB Smart Chain
+
+const REGISTRY_ABI = [
+  "function balanceOf(address owner) view returns (uint256)",
+  "function handleOf(address owner) view returns (string)"
+];
+const BADGE_ABI = [
+  "function claim()",
+  "function claimed(bytes32 agentId) view returns (bool)",
+  "function totalSupply() view returns (uint256)",
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function balanceOf(address owner) view returns (uint256)",
+  "function tokenURI(uint256 tokenId) view returns (string)"
+];
+
+const $ = (id) => document.getElementById(id);
+const log = (msg) => { $("log").textContent = msg; };
+
+let provider, signer, account, badge, registry;
+
+async function refresh() {
+  if (!provider || !account) return;
+  try {
+    registry = new ethers.Contract(REGISTRY_ADDRESS, REGISTRY_ABI, provider);
+    const bal = await registry.balanceOf(account);
+    const hasId = bal > 0n;
+    let handle = "";
+    let agentId = "0x" + "00".repeat(32);
+    if (hasId) {
+      handle = await registry.handleOf(account);
+      agentId = ethers.keccak256(ethers.toUtf8Bytes(handle));
+    }
+    $("agentId").innerHTML = hasId
+      ? `<span class="ok">${handle}.ai</span> (holds an Agent ID)`
+      : `<span class="no">No Agent ID on this address</span>`;
+    if (BADGE_ADDRESS !== "0x0000000000000000000000000000000000000000") {
+      badge = new ethers.Contract(BADGE_ADDRESS, BADGE_ABI, provider);
+      const already = await badge.claimed(agentId);
+      const total = await badge.totalSupply();
+      $("claimed").textContent = hasId ? (already ? "yes" : "not yet") : "—";
+      $("total").textContent = total.toString();
+      $("claimBtn").disabled = !(hasId && !already);
+    } else {
+      $("claimed").textContent = "contract not deployed yet";
+      $("total").textContent = "—";
+      $("claimBtn").disabled = true;
+    }
+  } catch (e) {
+    log("Read error: " + (e.shortMessage || e.message));
+  }
+}
+
+$("connectBtn").onclick = async () => {
+  try {
+    if (!window.ethereum) { log("No injected wallet found. Open this page in Binance Wallet or MetaMask."); return; }
+    provider = new ethers.BrowserProvider(window.ethereum);
+    const network = await provider.getNetwork();
+    if (Number(network.chainId) !== CHAIN_ID) {
+      log("Please switch your wallet to BNB Smart Chain (chain 56).");
+      try { await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x38" }] }); }
+      catch (e) { return; }
+    }
+    const accounts = await provider.send("eth_requestAccounts", []);
+    account = accounts[0];
+    signer = await provider.getSigner();
+    $("wallet").textContent = account;
+    $("badgeAddr").textContent = BADGE_ADDRESS;
+    log("Connected: " + account);
+    await refresh();
+    window.ethereum.on("accountsChanged", (accs) => { account = accs[0] || null; $("wallet").textContent = account || "not connected"; refresh(); });
+    window.ethereum.on("chainChanged", () => window.location.reload());
+  } catch (e) {
+    log("Connect error: " + (e.shortMessage || e.message));
+  }
+};
+
+$("claimBtn").onclick = async () => {
+  try {
+    if (!signer || !badge) return;
+    log("Sending claim() — gas only, value 0. Confirm in your wallet…");
+    const tx = await badge.connect(signer).claim();
+    log("Transaction sent: " + tx.hash + "\nWaiting for confirmation…");
+    const receipt = await tx.wait();
+    log("✅ Badge claimed! Transaction: " + receipt.hash);
+    await refresh();
+  } catch (e) {
+    log("Claim failed: " + (e.shortMessage || e.message));
+  }
+};
+
+$("badgeAddr").textContent = BADGE_ADDRESS;
+</script>
+</body>
+</html>
