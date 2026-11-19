@@ -1,0 +1,15 @@
+{
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Agent ID Genesis Badge"
+    },
+    {
+      "trait_type": "Claim",
+      "value": "Free \u2014 Agent ID holder"
+    }
+  ],
+  "description": "A free commemorative badge for Binance Agent ID holders. One badge per Agent ID, claimed gas-only. Built for the Binance Agent ID Hackathon.",
+  "image": "https://agentid-genesis-badge.pages.dev/badge.png",
+  "name": "Agent ID Genesis Badge #7"
+}
