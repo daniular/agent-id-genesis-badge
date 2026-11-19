@@ -1,0 +1,8 @@
+# Cloudflare Pages config — Agent ID Genesis Badge (Binance Agent ID Hackathon)
+# Project name MUST be `agentid-genesis-badge` because the contract's baseURI is
+# https://agentid-genesis-badge.pages.dev/metadata/
+# Static files live in ./site (index.html, metadata/1..10, badge.png, _headers).
+
+name = "agentid-genesis-badge"
+compatibility_date = "2026-11-19"
+pages_build_output_dir = "site"
