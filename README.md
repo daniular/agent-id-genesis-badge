@@ -13,18 +13,15 @@ the caller owns an Agent ID via the SPACE ID Agent ID registry.
 - **Source verified on Sourcify: exact_match** (creation + runtime),
   https://sourcify.dev/server/v2/contract/56/0x988bffCb78a21b10228aE45ba3DCF20D7d260F76
   — job caed1e02-539e-4e21-9096-cd028bf38643. BscScan-native verification
-  NOT done: no Etherscan/BscScan API key exists on this machine (the
-  foundry.toml entries only reference an unset `${ETHERSCAN_API_KEY}` env
-  var); BscScan page fetch returns 403 and the v2 API requires a key.
-  Blocker: a free Etherscan API key (etherscan.io account) OR manual
-  web-form verification. Sourcify exact_match is the public source proof
-  in the meantime (BscScan surfaces Sourcify-verified contracts).
+  DONE 2026-11-19 ~15:39 WIB: the BscScan verification form itself reports
+  "Contract source code has already been verified" — the Sourcify
+  exact_match propagated to BscScan.
 - **Site wired:** `BADGE_ADDRESS` in `site/index.html` set to the deployed
   address (JS syntax checked OK). Metadata JSONs for token IDs 1–10
   generated (both `N.json` and extensionless `N`, because `tokenURI()`
   returns `baseURI + tokenId` with no `.json` suffix) + `site/badge.png`
   (512×512) + `site/_headers` (JSON content-type for `/metadata/*`).
-- **Live usage:** totalSupply was 8 within ~15 min of deployment (6 → 7 → 8),
+- **Live usage:** totalSupply was 36 as of 2026-11-19 ~16:12 WIB (8 within ~15 min of deployment),
   all from distinct Agent ID-holder addresses — organic claims, contract
   enforces Agent ID ownership. Alex (rameni77) is ELIGIBLE and UNCLAIMED:
   registry balanceOf = 1, `claimed[agentId]` = false, `claim()` eth_call
